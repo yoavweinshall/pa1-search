@@ -15,7 +15,7 @@ You will be working with a maze-solving application that provides a visual inter
 
 ## What You Need to Implement
 
-**You will need to edit two files:**
+**You will need to edit one file:**
 
 ### 1. `maze/ai.py` - Search Algorithms
 This file contains five functions that you need to implement:
