@@ -39,16 +39,16 @@ def main():
         try:
             with profiling.timer() as t:
                 if alg.get()=="BFS":
-                    path, _ =ai_impl.bfs(m)
+                    path, expanded =ai_impl.bfs(m)
                 elif alg.get()=="DFS":
-                    path, _=ai_impl.dfs(m)
+                    path, expanded =ai_impl.dfs(m)
                 elif alg.get()=="DIJKSTRA":
-                    path, _=ai_impl.dijkstra(m)
+                    path, expanded =ai_impl.dijkstra(m)
                 elif alg.get()=="ASTAR":
-                    h=plugins.get("maze", hvar.get()); path, _=ai_impl.a_star(m, h)
+                    h=plugins.get("maze", hvar.get()); path, expanded=ai_impl.a_star(m, h)
                 elif alg.get()=="GBFS":
-                    h=plugins.get("maze", hvar.get()); path, _=ai_impl.gbfs(m, h)
-            tvar.set(f"Last solve: {t['seconds']*1000:.1f} ms; nodes={metrics.get('nodes','n/a')}")
+                    h=plugins.get("maze", hvar.get()); path, expanded =ai_impl.gbfs(m, h)
+            tvar.set(f"Last solve: {t['seconds']*1000:.1f} ms; nodes expanded={len(expanded)}; path length={len(path)}")
         except NotImplementedError:
             messagebox.showinfo("AI not implemented","Implement BFS/DFS/Dijkstra/A*/GBFS in maze/ai.py"); path=[]
         draw()

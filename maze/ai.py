@@ -1,5 +1,6 @@
 from collections import deque
-import heapq
+import heapq, math
+from common import plugins
 
 def bfs(maze):
     start, goal = maze.start, maze.goal
@@ -59,3 +60,10 @@ def gbfs(maze, heuristic):
     pass
 
     return path, expanded
+
+# === DO NOT EDIT: Heuristic registration for GUI ===
+def zero_heuristic(a, b):
+    return 0
+plugins.register('maze', 'zero', zero_heuristic)
+plugins.register('maze', 'manhattan', manhattan_distance)
+plugins.register('maze', 'euclidean', euclidean_distance)
