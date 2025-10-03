@@ -10,6 +10,8 @@ You will be working with a maze-solving application that provides a visual inter
 - **Black cells** are unwalkable (walls)
 - **Green cell** is the start position
 - **Red cell** is the goal position
+  
+**You will only be submitting ai.py to gradescope!**
 
 ## What You Need to Implement
 
@@ -23,13 +25,9 @@ This file contains five functions that you need to implement:
 3. **`dijkstra(maze, metrics=None)`** - Implement Dijkstra's Algorithm
 4. **`a_star(maze, heuristic, metrics=None)`** - Implement A* search with a given heuristic
 5. **`gbfs(maze, heuristic, metrics=None)`** - Implement Greedy Best-First Search
-
-### 2. `maze/heuristics/__init__.py` - Heuristic Functions
-This file contains three heuristic functions that you need to implement:
-
-1. **`manhattan_distance(pos1, pos2)`** - Calculate Manhattan distance between two positions
-2. **`euclidean_distance(pos1, pos2)`** - Calculate Euclidean distance between two positions
-3. **Zero heuristic** - Already implemented (always returns 0)
+6. **`manhattan_distance(pos1, pos2)`** - Calculate Manhattan distance between two positions
+7. **`euclidean_distance(pos1, pos2)`** - Calculate Euclidean distance between two positions
+8. **Zero heuristic** - Already implemented (always returns 0)
 
 ### Function Requirements
 
