@@ -1,12 +1,24 @@
 from collections import deque
 import heapq, math
-from typing import Tuple
+from typing import Tuple, Generator
 
 from common import plugins
 from .game import Maze
 
 ROW_LOCATION_IN_POSITION_TUPLE = 0
 COLUMN_LOCATION_IN_POSITION_TUPLE = 1
+
+def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]) -> Generator[Tuple[int, int]]:
+    """
+    wrapper to the get neighbor function that returns only the none wall neighbors
+    :param maze: the maze
+    :param location: the location we want its neighbors
+    :return: a generator that yields the none wall neighbors
+    """
+    for neighbor in maze.neighbors(*location):
+        if maze.get_weight(*neighbor) != 0:
+            yield neighbor
+
 
 def bfs(maze: Maze):
     start, goal = maze.start, maze.goal
