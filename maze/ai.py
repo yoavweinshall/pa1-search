@@ -1,6 +1,6 @@
 from collections import deque
 import heapq, math
-from typing import Tuple, Generator, Dict, Set, List
+from typing import Tuple, Generator, Dict, List, Set, Union
 
 from common import plugins
 from .game import Maze
@@ -9,6 +9,7 @@ ROW_LOCATION_IN_POSITION_TUPLE = 0
 COLUMN_LOCATION_IN_POSITION_TUPLE = 1
 WALL_WEIGHT = float('inf')
 NO_SOL_WEIGHT = float('inf')
+
 
 def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]) -> Generator[Tuple[int, int]]:
     """
@@ -22,7 +23,25 @@ def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]) -> Generator[T
             yield neighbor
 
 
-def build_path_from_prev_dict(start: Tuple[int, int], goal: Tuple[int, int],
+def init_distance_prev_expanded(maze: Maze)\
+        -> (Dict[Tuple[int, int], int], Dict[Tuple[int, int], Tuple[int, int]], Set[Tuple[int, int]]):
+    """
+    create the shortest distance dict, prev node dict and the expanded set
+    :param maze: the maze
+    :return: initialized distance dict, prev node dict, and expanded set
+    """
+    expanded = set()
+    distances = {}
+    for row in range(maze.goal[ROW_LOCATION_IN_POSITION_TUPLE] + 1):
+        for col in range(maze.goal[COLUMN_LOCATION_IN_POSITION_TUPLE] + 1):
+            distances[(row, col)] = float('inf')
+    distances[maze.start] = 0
+    prev = {}
+    return distances, prev, expanded
+
+
+def build_path_from_prev_dict(start: Tuple[int, int],
+                              goal: Tuple[int, int],
                               prev_dict: Dict[Tuple[int, int], Tuple[int, int]]) -> List[Tuple[int, int]]:
     """
     go over the prev node dict to extract the path to solve the maze. We call this function only if we solved the maze
@@ -41,44 +60,63 @@ def build_path_from_prev_dict(start: Tuple[int, int], goal: Tuple[int, int],
     return path
 
 
-def bfs(maze: Maze):
-    start, goal = maze.start, maze.goal
-    path = []
-    expanded = set()
+def explore_neighbors(maze: Maze,
+                      node: Tuple[int, int],
+                      nodes_to_explore: Union[deque[Tuple[int,int]],
+                      List[Tuple[int,int]]],expanded: Set[tuple[int,int]],
+                      distance_dict: Dict[Tuple[int, int], int],
+                      prev_dict: Dict[Tuple[int, int], Tuple[int, int]]) -> None:
+    """
+    look at the neighbors of a node by update the distances and prev dicts and adding the
+    neighbors for check later (when depends on algorithm)
+    :param maze: The maze
+    :param node: the node we want to explore its neighbors
+    :param nodes_to_explore: data structure that holds the nodes that we need yet to explore
+    :param expanded: nodes we visited in
+    :param distance_dict: the shortest distance we have discovered for each node so far. default value is infinity
+    :param prev_dict: the dictionary that holds the previous node on the shortest path found to each node
+    :return: None
+    """
+    expanded.add(node)
+    for neighbor in get_non_wall_neighbors(maze, node):
+        dist_to_neighbor = maze.get_weight(*neighbor) + distance_dict[node]
+        if dist_to_neighbor < distance_dict[neighbor]:  # replace path to a better one
+            # if we find a better way to a node its neighbors might be also a better way through it
+            if distance_dict[neighbor] != float('inf'):
+                for neighbor_of_neighbor in get_non_wall_neighbors(maze, neighbor):
+                    nodes_to_explore.append(neighbor_of_neighbor)
+            distance_dict[neighbor] = dist_to_neighbor
+            prev_dict[neighbor] = node
+        if neighbor not in expanded:  # explor new nodes
+            nodes_to_explore.append(neighbor)
 
-    # TODO
-    pass
 
-    return path, expanded
+def bfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
+    """
+    solve the maze using bfs algorithm
+    :param maze: the maze
+    :return: the shortest path and the locations we visited in while trying to solve the naze
+    """
+    distances, prev, expanded = init_distance_prev_expanded(maze)
+    node_queue = deque([maze.start])
+    while node_queue:
+        node = node_queue.popleft()
+        explore_neighbors(maze, node, node_queue, expanded, distances, prev)
+    return (build_path_from_prev_dict(maze.start, maze.goal, prev), expanded) if maze.goal in expanded else ([], expanded)
 
 
-def dfs(maze: Maze):
-    start, goal = maze.start, maze.goal
-    expanded = set()
-    distances = {}
-    for row in range(goal[ROW_LOCATION_IN_POSITION_TUPLE] + 1):
-        for col in range(goal[COLUMN_LOCATION_IN_POSITION_TUPLE] + 1):
-            distances[(row, col)] = float('inf')
-    distances[start] = 0
-    prev = {}
-    node_stack = [start]
-    expanded.add(start)
+def dfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
+    """
+    solve the maze using dfs algorithm
+    :param maze: the maze
+    :return: the shortest path and the locations we visited in while trying to solve the naze
+    """
+    distances, prev, expanded = init_distance_prev_expanded(maze)
+    node_stack = [maze.start]
     while node_stack:
         node = node_stack.pop()
-        expanded.add(node)
-        for neighbor in get_non_wall_neighbors(maze, node):
-            dist_to_neighbor = maze.get_weight(*neighbor) + distances[node]
-
-            if dist_to_neighbor < distances[neighbor]:  # replace path to a better one
-                distances[neighbor] = dist_to_neighbor
-                prev[neighbor] = node
-                # if we find a better way to a node its neighbors might be also a better way through it
-                for neighbor_of_neighbor in get_non_wall_neighbors(maze, neighbor):
-                    node_stack.append(neighbor_of_neighbor)
-
-            if neighbor not in expanded:  # explor new nodes
-                node_stack.append(neighbor)
-    return (build_path_from_prev_dict(start, goal, prev), expanded) if goal in expanded else ([], expanded)
+        explore_neighbors(maze, node, node_stack, expanded, distances, prev)
+    return (build_path_from_prev_dict(maze.start, maze.goal, prev), expanded) if maze.goal in expanded else ([], expanded)
 
 
 def dijkstra(maze: Maze):
