@@ -1,6 +1,6 @@
 from collections import deque
 import heapq, math
-from typing import Tuple, Generator, Dict, List, Set, Union
+from typing import Tuple, Dict, List, Set, Union
 
 from common import plugins
 from .game import Maze
@@ -11,7 +11,7 @@ WALL_WEIGHT = float('inf')
 NO_SOL_WEIGHT = float('inf')
 
 
-def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]) -> Generator[Tuple[int, int]]:
+def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]):
     """
     wrapper to the get neighbor function that returns only the none wall neighbors
     :param maze: the maze
@@ -79,15 +79,8 @@ def explore_neighbors(maze: Maze,
     """
     expanded.add(node)
     for neighbor in get_non_wall_neighbors(maze, node):
-        dist_to_neighbor = maze.get_weight(*neighbor) + distance_dict[node]
-        if dist_to_neighbor < distance_dict[neighbor]:  # replace path to a better one
-            # if we find a better way to a node its neighbors might be also a better way through it
-            if distance_dict[neighbor] != float('inf'):
-                for neighbor_of_neighbor in get_non_wall_neighbors(maze, neighbor):
-                    nodes_to_explore.append(neighbor_of_neighbor)
-            distance_dict[neighbor] = dist_to_neighbor
+        if neighbor not in prev_dict.keys():
             prev_dict[neighbor] = node
-        if neighbor not in expanded:  # explor new nodes
             nodes_to_explore.append(neighbor)
 
 
@@ -136,8 +129,8 @@ def manhattan_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
     :param b: position of second cell in a (row,column) tuple
     :return: The manhattan distance between two cells defined to be |a.x - b.x| + |a.y - b.y|
     """
-    return math.sqrt((a[ROW_LOCATION_IN_POSITION_TUPLE] - b[ROW_LOCATION_IN_POSITION_TUPLE]) ** 2 +
-                     (a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]) ** 2)
+    return (abs(a[ROW_LOCATION_IN_POSITION_TUPLE] - b[ROW_LOCATION_IN_POSITION_TUPLE]) +
+                abs(a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]))
 
 
 def euclidean_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
@@ -147,8 +140,9 @@ def euclidean_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
     :param b: position of second cell in a (row,column) tuple
     :return: The Euclidian distance between two cells defined to be sqrt((a.x - b.x)^2 + (a.y - b.y)^2)
     """
-    return (abs(a[ROW_LOCATION_IN_POSITION_TUPLE] - b[ROW_LOCATION_IN_POSITION_TUPLE]) +
-            abs(a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]))
+    return math.sqrt((a[ROW_LOCATION_IN_POSITION_TUPLE] - b[ROW_LOCATION_IN_POSITION_TUPLE]) ** 2 +
+                     (a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]) ** 2)
+
 
 def a_star(maze: Maze, heuristic):
     start, goal = maze.start, maze.goal
