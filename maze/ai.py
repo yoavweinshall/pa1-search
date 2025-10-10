@@ -75,7 +75,7 @@ def bfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
     prev = {}
     expanded = set()
     node_queue = deque([maze.start])
-    while node_queue:
+    while node_queue and maze.goal not in expanded:
         node = node_queue.popleft()
         explore_neighbors_list_adt(maze, node, node_queue, expanded, prev)
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
@@ -90,7 +90,7 @@ def dfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
     prev = {}
     expanded = set()
     node_stack = [maze.start]
-    while node_stack:
+    while node_stack and maze.goal not in expanded:
         node = node_stack.pop()
         explore_neighbors_list_adt(maze, node, node_stack, expanded, prev)
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
