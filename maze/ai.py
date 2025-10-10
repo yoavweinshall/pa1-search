@@ -1,6 +1,6 @@
 from collections import deque
 import heapq, math
-from typing import Tuple, Dict, List, Set, Union, Callable
+from typing import Tuple, Dict, List, Set, Union, Callable, Generator
 
 from common import plugins
 from .game import Maze
@@ -11,7 +11,7 @@ WALL_WEIGHT = float('inf')
 NO_SOL_WEIGHT = float('inf')
 
 
-def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]):
+def get_non_wall_neighbors(maze: Maze, location: Tuple[int, int]) -> Generator[Tuple[int, int], None, None]:
     """
     wrapper to the get neighbor function that returns only the none wall neighbors
     :param maze: the maze
@@ -43,14 +43,15 @@ def build_path_from_prev_dict(start: Tuple[int, int],
     return path
 
 
-def explore_neighbors(maze: Maze,
-                      node: Tuple[int, int],
-                      nodes_to_explore: Union[deque[Tuple[int,int]],
-                      List[Tuple[int,int]]],expanded: Set[tuple[int,int]],
-                      prev_dict: Dict[Tuple[int, int], Tuple[int, int]]) -> None:
+def explore_neighbors_list_adt(maze: Maze,
+                               node: Tuple[int, int],
+                               nodes_to_explore: Union[deque[Tuple[int,int]], List[Tuple[int,int]]],
+                               expanded: Set[tuple[int,int]],
+                               prev_dict: Dict[Tuple[int, int], Tuple[int, int]]) -> None:
     """
     look at the neighbors of a node by update the distances and prev dicts and adding the
-    neighbors for check later (when depends on algorithm)
+    neighbors for check later (when depends on algorithm). This function works with algorithms that uses implementation
+    of the ADT list to choose the next node to explore (BFS/DFS)
     :param maze: The maze
     :param node: the node we want to explore its neighbors
     :param nodes_to_explore: data structure that holds the nodes that we need yet to explore
@@ -69,14 +70,14 @@ def bfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
     """
     solve the maze using bfs algorithm
     :param maze: the maze
-    :return: the shortest path and the locations we visited in while trying to solve the naze
+    :return: A solution to the maze ant the locations we visited in while trying to solve the maze
     """
     prev = {}
     expanded = set()
     node_queue = deque([maze.start])
     while node_queue:
         node = node_queue.popleft()
-        explore_neighbors(maze, node, node_queue, expanded, prev)
+        explore_neighbors_list_adt(maze, node, node_queue, expanded, prev)
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
 
@@ -84,18 +85,23 @@ def dfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
     """
     solve the maze using dfs algorithm
     :param maze: the maze
-    :return: the shortest path and the locations we visited in while trying to solve the naze
+    :return: A solution to the maze ant the locations we visited in while trying to solve the maze
     """
     prev = {}
     expanded = set()
     node_stack = [maze.start]
     while node_stack:
         node = node_stack.pop()
-        explore_neighbors(maze, node, node_stack, expanded, prev)
+        explore_neighbors_list_adt(maze, node, node_stack, expanded, prev)
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
 
 def dijkstra(maze: Maze):
+    """
+    solve the maze using GBFS algorithm
+    :param maze: the maze we try to solve
+    :return: A solution to the maze ant the locations we visited in while trying to solve the maze
+    """
     expanded = set()
     prev = {}
     nodes_heap = [(0, maze.start)]
@@ -131,36 +137,51 @@ def euclidean_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
                      (a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]) ** 2)
 
 
-def a_star(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float]):
+def a_star(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float])\
+        -> (List[Tuple[int, int]], Set[Tuple[int, int]]):
+    """
+    solve the maze using GBFS algorithm
+    :param maze: the maze we try to solve
+    :param heuristic: the heuristic function to decide on which node to explore next among neighbors
+    :return: A solution to the maze ant the locations we visited in while trying to solve the maze
+    """
     expanded = set()
     prev = {}
-    nodes_heap = [(0, maze.start)]
+    nodes_heap = [(0.0, maze.start)]
     heapq.heapify(nodes_heap)
     while nodes_heap and maze.goal not in expanded:
         price, node = heapq.heappop(nodes_heap)
         expanded.add(node)
         all_neighbors = list(get_non_wall_neighbors(maze, node))
         all_neighbors.sort(key=lambda loc: heuristic(loc, maze.goal))
-        for i in range(len(all_neighbors)):
-            if all_neighbors[i] not in prev:
-                prev[all_neighbors[i]] = node
+        for neighbor in get_non_wall_neighbors(maze, node):
+            if neighbor not in prev:
+                prev[neighbor] = node
                 #set the price in a way that the closest by heuristic function will have a lower key in heap
-                fixed_price = price + maze.get_weight(*all_neighbors[i]) + i*(1/(10*len(all_neighbors)))
-                heapq.heappush(nodes_heap, (fixed_price, all_neighbors[i]))
+                fixed_price = price + maze.get_weight(*neighbor) + heuristic(neighbor, maze.goal)
+                heapq.heappush(nodes_heap, (fixed_price, neighbor))
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
-def gbfs(maze: Maze, heuristic):
+
+def gbfs(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float])\
+        -> (List[Tuple[int, int]], Set[Tuple[int, int]]):
+    """
+    solve the maze using GBFS algorithm
+    :param maze: the maze we try to solve
+    :param heuristic: the heuristic function to decide on which node to explore next
+    :return: A solution to the maze ant the locations we visited in while trying to solve the maze
+    """
     expanded = set()
     prev = {}
-    nodes_heap = [(0, maze.start)]
+    nodes_heap = [(0.0, maze.start)]
     heapq.heapify(nodes_heap)
     while nodes_heap and maze.goal not in expanded:
-        price, node = heapq.heappop(nodes_heap)
+        distance, node = heapq.heappop(nodes_heap)
         expanded.add(node)
         for neighbor in get_non_wall_neighbors(maze, node):
             if neighbor not in prev:
                 prev[neighbor] = node
-                # set the price in a way that the closest by heuristic function will have a lower key in heap
+                # set the key to be distance from goal
                 heapq.heappush(nodes_heap, (heuristic(neighbor, maze.goal), neighbor))
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
