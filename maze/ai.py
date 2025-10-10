@@ -1,6 +1,6 @@
 from collections import deque
 import heapq, math
-from typing import Tuple, Dict, List, Set, Union
+from typing import Tuple, Dict, List, Set, Union, Callable
 
 from common import plugins
 from .game import Maze
@@ -96,15 +96,15 @@ def dfs(maze: Maze)-> (List[Tuple[int, int]], Set[Tuple[int, int]]):
 
 
 def dijkstra(maze: Maze):
-    expanded = {maze.start}
+    expanded = set()
     prev = {}
     nodes_heap = [(0, maze.start)]
     heapq.heapify(nodes_heap)
     while nodes_heap and maze.goal not in expanded:
         price, node = heapq.heappop(nodes_heap)
+        expanded.add(node)
         for neighbor in get_non_wall_neighbors(maze, node):
-            if neighbor not in expanded:
-                expanded.add(neighbor)
+            if neighbor not in prev:
                 prev[neighbor] = node
                 heapq.heappush(nodes_heap, (price + maze.get_weight(*neighbor), neighbor))
     return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
@@ -131,25 +131,38 @@ def euclidean_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
                      (a[COLUMN_LOCATION_IN_POSITION_TUPLE] - b[COLUMN_LOCATION_IN_POSITION_TUPLE]) ** 2)
 
 
-def a_star(maze: Maze, heuristic):
-    start, goal = maze.start, maze.goal
-    path = []
+def a_star(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float]):
     expanded = set()
-
-    # TODO
-    pass
-
-    return path, expanded
+    prev = {}
+    nodes_heap = [(0, maze.start)]
+    heapq.heapify(nodes_heap)
+    while nodes_heap and maze.goal not in expanded:
+        price, node = heapq.heappop(nodes_heap)
+        expanded.add(node)
+        all_neighbors = list(get_non_wall_neighbors(maze, node))
+        all_neighbors.sort(key=lambda loc: heuristic(loc, maze.goal))
+        for i in range(len(all_neighbors)):
+            if all_neighbors[i] not in prev:
+                prev[all_neighbors[i]] = node
+                #set the price in a way that the closest by heuristic function will have a lower key in heap
+                fixed_price = price + maze.get_weight(*all_neighbors[i]) + i*(1/(10*len(all_neighbors)))
+                heapq.heappush(nodes_heap, (fixed_price, all_neighbors[i]))
+    return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
 def gbfs(maze: Maze, heuristic):
-    start, goal = maze.start, maze.goal
-    path = []
     expanded = set()
-
-    # TODO
-    pass
-
-    return path, expanded
+    prev = {}
+    nodes_heap = [(0, maze.start)]
+    heapq.heapify(nodes_heap)
+    while nodes_heap and maze.goal not in expanded:
+        price, node = heapq.heappop(nodes_heap)
+        expanded.add(node)
+        for neighbor in get_non_wall_neighbors(maze, node):
+            if neighbor not in prev:
+                prev[neighbor] = node
+                # set the price in a way that the closest by heuristic function will have a lower key in heap
+                heapq.heappush(nodes_heap, (heuristic(neighbor, maze.goal), neighbor))
+    return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
 
 # === DO NOT EDIT: Heuristic registration for GUI ===
 def zero_heuristic(a, b):
