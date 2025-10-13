@@ -140,27 +140,27 @@ def euclidean_distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
 def a_star(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float])\
         -> (List[Tuple[int, int]], Set[Tuple[int, int]]):
     """
-    solve the maze using GBFS algorithm
+    solve the maze using A* algorithm
     :param maze: the maze we try to solve
     :param heuristic: the heuristic function to decide on which node to explore next among neighbors
     :return: A solution to the maze ant the locations we visited in while trying to solve the maze
     """
     expanded = set()
     prev = {}
-    nodes_heap = [(0.0, maze.start)]
+    nodes_heap = [(0.0, maze.start, heuristic(maze.start, maze.goal))]
     heapq.heapify(nodes_heap)
-    while nodes_heap and maze.goal not in expanded:
-        price, node = heapq.heappop(nodes_heap)
+    while nodes_heap:
+        est_price, node, node_distance = heapq.heappop(nodes_heap)
         expanded.add(node)
-        all_neighbors = list(get_non_wall_neighbors(maze, node))
-        all_neighbors.sort(key=lambda loc: heuristic(loc, maze.goal))
+        if node == maze.goal:
+            return build_path_from_prev_dict(maze.start, maze.goal, prev), expanded
         for neighbor in get_non_wall_neighbors(maze, node):
             if neighbor not in prev:
                 prev[neighbor] = node
                 #set the price in a way that the closest by heuristic function will have a lower key in heap
-                fixed_price = price + maze.get_weight(*neighbor) + heuristic(neighbor, maze.goal)
-                heapq.heappush(nodes_heap, (fixed_price, neighbor))
-    return build_path_from_prev_dict(maze.start, maze.goal, prev) if maze.goal in expanded else [], expanded
+                fixed_price = est_price + maze.get_weight(*neighbor) + heuristic(neighbor, maze.goal) - node_distance
+                heapq.heappush(nodes_heap, (fixed_price, neighbor, heuristic(neighbor, maze.goal)))
+    return [], expanded
 
 
 def gbfs(maze: Maze, heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float])\
